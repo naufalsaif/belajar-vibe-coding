@@ -1,7 +1,14 @@
 import { Elysia } from "elysia";
 import { usersRoute } from "./routes/users-route";
+import { AppError } from "./utils/errors";
 
 const app = new Elysia()
+  .onError(({ code, error, set }) => {
+    if (error instanceof AppError) {
+      set.status = error.statusCode;
+      return { error: error.message };
+    }
+  })
   .get("/", () => "Hello Elysia")
   .get("/health", () => ({ status: "ok" }))
   .use(usersRoute)

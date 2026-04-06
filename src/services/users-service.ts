@@ -3,24 +3,22 @@ import { users, sessions } from "../db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import { randomUUID } from "node:crypto";
+import { AppError } from "../utils/errors";
 
 export const usersService = {
   async registerUser(payload: any) {
     const { name, email, password } = payload;
 
-    // 1. Cek apakah email sudah terdaftar
     const existingUser = await db.query.users.findFirst({
       where: eq(users.email, email),
     });
 
     if (existingUser) {
-      return { error: "Email sudah terdaftar" };
+      throw new AppError(400, "Email sudah terdaftar");
     }
 
-    // 2. Hash password menggunakan bcrypt
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 3. Simpan user ke database
     await db.insert(users).values({
       name,
       email,
@@ -33,26 +31,22 @@ export const usersService = {
   async loginUser(payload: any) {
     const { email, password } = payload;
 
-    // 1. Cari user berdasarkan email
     const user = await db.query.users.findFirst({
       where: eq(users.email, email),
     });
 
     if (!user) {
-      return { error: "Email atau password salah" };
+      throw new AppError(401, "Email atau password salah");
     }
 
-    // 2. Bandingkan password
     const isPasswordMatch = await bcrypt.compare(password, user.password);
 
     if (!isPasswordMatch) {
-      return { error: "Email atau password salah" };
+      throw new AppError(401, "Email atau password salah");
     }
 
-    // 3. Generate session token (UUID)
     const token = randomUUID();
 
-    // 4. Simpan session ke database
     await db.insert(sessions).values({
       token,
       userId: user.id,
@@ -62,7 +56,6 @@ export const usersService = {
   },
 
   async getCurrentUser(token: string) {
-    // 1. Cari session dan join dengan user menggunakan Core API (menghindari LATERAL JOIN yg tidak didukung MariaDB)
     const result = await db
       .select({
         user: {
@@ -80,23 +73,21 @@ export const usersService = {
     const user = result[0]?.user;
 
     if (!user) {
-      return { error: "Unauthorized" };
+      throw new AppError(401, "Unauthorized");
     }
 
     return { data: user };
   },
 
   async logoutUser(token: string) {
-    // 1. Cek apakah session ada
     const session = await db.query.sessions.findFirst({
       where: eq(sessions.token, token),
     });
 
     if (!session) {
-      return { error: "Unauthorized" };
+      throw new AppError(401, "Unauthorized");
     }
 
-    // 2. Hapus session dari database
     await db.delete(sessions).where(eq(sessions.token, token));
 
     return { data: "OK" };

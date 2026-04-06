@@ -1,16 +1,18 @@
 import { Elysia, t } from "elysia";
 import { usersService } from "../services/users-service";
+import { AppError } from "../utils/errors";
+
+const extractToken = (headers: Record<string, string | undefined>): string => {
+  const authHeader = headers["authorization"];
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    throw new AppError(401, "Unauthorized");
+  }
+  return authHeader.split(" ")[1];
+};
 
 export const usersRoute = new Elysia({ prefix: "/api/users" })
-  .post("/", async ({ body, set }) => {
-    const result = await usersService.registerUser(body);
-
-    if (result.error) {
-      set.status = 400;
-      return { error: result.error };
-    }
-
-    return { data: "OK" };
+  .post("/", async ({ body }) => {
+    return await usersService.registerUser(body);
   }, {
     body: t.Object({
       name: t.String(),
@@ -18,54 +20,19 @@ export const usersRoute = new Elysia({ prefix: "/api/users" })
       password: t.String(),
     }),
   })
-  .post("/login", async ({ body, set }) => {
-    const result = await usersService.loginUser(body);
-
-    if (result.error) {
-      set.status = 401;
-      return { error: result.error };
-    }
-
-    return { data: result.data };
+  .post("/login", async ({ body }) => {
+    return await usersService.loginUser(body);
   }, {
     body: t.Object({
       email: t.String(),
       password: t.String(),
     }),
   })
-  .get("/current", async ({ headers, set }) => {
-    const authHeader = headers["authorization"];
-
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      set.status = 401;
-      return { error: "Unauthorized" };
-    }
-
-    const token = authHeader.split(" ")[1];
-    const result = await usersService.getCurrentUser(token);
-
-    if (result.error) {
-      set.status = 401;
-      return { error: result.error };
-    }
-
-    return { data: result.data };
+  .get("/current", async ({ headers }) => {
+    const token = extractToken(headers);
+    return await usersService.getCurrentUser(token);
   })
-  .delete("/logout", async ({ headers, set }) => {
-    const authHeader = headers["authorization"];
-
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      set.status = 401;
-      return { error: "Unauthorized" };
-    }
-
-    const token = authHeader.split(" ")[1];
-    const result = await usersService.logoutUser(token);
-
-    if (result.error) {
-      set.status = 401;
-      return { error: result.error };
-    }
-
-    return { data: "OK" };
+  .delete("/logout", async ({ headers }) => {
+    const token = extractToken(headers);
+    return await usersService.logoutUser(token);
   });
