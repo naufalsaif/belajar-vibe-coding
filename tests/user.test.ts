@@ -116,6 +116,54 @@ describe("User Authentication API", () => {
 
       expect(response.status).toBe(422);
     });
+
+    it("should fail on name validation (too long)", async () => {
+      const response = await app.handle(
+        new Request("http://localhost/api/users/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: "a".repeat(256),
+            email: "longname@gmail.com",
+            password: "password123",
+          }),
+        })
+      );
+
+      expect(response.status).toBe(422);
+    });
+
+    it("should fail on email validation (too long)", async () => {
+      const response = await app.handle(
+        new Request("http://localhost/api/users/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: "Naufal",
+            email: "a".repeat(250) + "@gmail.com",
+            password: "password123",
+          }),
+        })
+      );
+
+      expect(response.status).toBe(422);
+    });
+
+    it("should fail on password validation (too long)", async () => {
+      const response = await app.handle(
+        new Request("http://localhost/api/users/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: "Naufal",
+            email: "test@gmail.com",
+            password: "a".repeat(256),
+          }),
+        })
+      );
+
+      expect(response.status).toBe(422);
+    });
   });
 
   describe("POST /api/users/login (Login)", () => {
