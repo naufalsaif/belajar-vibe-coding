@@ -1,7 +1,8 @@
 import { db } from "../db";
-import { users } from "../db/schema";
+import { users, sessions } from "../db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcrypt";
+import { randomUUID } from "node:crypto";
 
 export const usersService = {
   async registerUser(payload: any) {
@@ -27,5 +28,36 @@ export const usersService = {
     });
 
     return { data: "OK" };
+  },
+
+  async loginUser(payload: any) {
+    const { email, password } = payload;
+
+    // 1. Cari user berdasarkan email
+    const user = await db.query.users.findFirst({
+      where: eq(users.email, email),
+    });
+
+    if (!user) {
+      return { error: "Email atau password salah" };
+    }
+
+    // 2. Bandingkan password
+    const isPasswordMatch = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordMatch) {
+      return { error: "Email atau password salah" };
+    }
+
+    // 3. Generate session token (UUID)
+    const token = randomUUID();
+
+    // 4. Simpan session ke database
+    await db.insert(sessions).values({
+      token,
+      userId: user.id,
+    });
+
+    return { data: token };
   },
 };
