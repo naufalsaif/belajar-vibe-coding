@@ -15,9 +15,9 @@ export const usersRoute = new Elysia({ prefix: "/api/users" })
     return await usersService.registerUser(body);
   }, {
     body: t.Object({
-      name: t.String({ minLength: 3, maxLength: 255, default: "John Doe" }),
-      email: t.String({ format: "email", maxLength: 255, default: "john@example.com" }),
-      password: t.String({ minLength: 6, maxLength: 255, default: "password123" }),
+      name: t.String({ minLength: 3, maxLength: 255 }),
+      email: t.String({ format: "email", maxLength: 255 }),
+      password: t.String({ minLength: 6, maxLength: 255 }),
     }),
     response: {
       200: t.Object({
@@ -34,14 +34,25 @@ export const usersRoute = new Elysia({ prefix: "/api/users" })
       tags: ["Users"],
       summary: "Registrasi Pengguna Baru",
       description: "Mendaftarkan akun baru dengan validasi nama, email, dan password.",
+      requestBody: {
+        content: {
+          "application/json": {
+            example: {
+              name: "John Doe",
+              email: "john@example.com",
+              password: "password123",
+            },
+          },
+        },
+      },
     },
   })
   .post("/login", async ({ body }) => {
     return await usersService.loginUser(body);
   }, {
     body: t.Object({
-      email: t.String({ format: "email", maxLength: 255, default: "john@example.com" }),
-      password: t.String({ minLength: 6, maxLength: 255, default: "password123" }),
+      email: t.String({ format: "email", maxLength: 255 }),
+      password: t.String({ minLength: 6, maxLength: 255 }),
     }),
     response: {
       200: t.Object({
@@ -55,6 +66,16 @@ export const usersRoute = new Elysia({ prefix: "/api/users" })
       tags: ["Users"],
       summary: "Login Pengguna",
       description: "Melakukan otentikasi dan mendapatkan token sesi.",
+      requestBody: {
+        content: {
+          "application/json": {
+            example: {
+              email: "john@example.com",
+              password: "password123",
+            },
+          },
+        },
+      },
     },
   })
   .get("/current", async ({ headers }) => {
