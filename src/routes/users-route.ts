@@ -15,10 +15,21 @@ export const usersRoute = new Elysia({ prefix: "/api/users" })
     return await usersService.registerUser(body);
   }, {
     body: t.Object({
-      name: t.String({ minLength: 3, maxLength: 255 }),
-      email: t.String({ format: "email", maxLength: 255 }),
-      password: t.String({ minLength: 6, maxLength: 255 }),
+      name: t.String({ minLength: 3, maxLength: 255, default: "John Doe" }),
+      email: t.String({ format: "email", maxLength: 255, default: "john@example.com" }),
+      password: t.String({ minLength: 6, maxLength: 255, default: "password123" }),
     }),
+    response: {
+      200: t.Object({
+        data: t.String({ default: "OK" }),
+      }),
+      400: t.Object({
+        error: t.String({ default: "Email sudah terdaftar" }),
+      }),
+      422: t.Object({
+        error: t.String({ default: "Validation error" }),
+      }),
+    },
     detail: {
       tags: ["Users"],
       summary: "Registrasi Pengguna Baru",
@@ -29,9 +40,17 @@ export const usersRoute = new Elysia({ prefix: "/api/users" })
     return await usersService.loginUser(body);
   }, {
     body: t.Object({
-      email: t.String({ format: "email", maxLength: 255 }),
-      password: t.String({ minLength: 6, maxLength: 255 }),
+      email: t.String({ format: "email", maxLength: 255, default: "john@example.com" }),
+      password: t.String({ minLength: 6, maxLength: 255, default: "password123" }),
     }),
+    response: {
+      200: t.Object({
+        data: t.String({ default: "a968d11e-75d0-4739-99d9-f646e653f87e" }),
+      }),
+      401: t.Object({
+        error: t.String({ default: "Email atau password salah" }),
+      }),
+    },
     detail: {
       tags: ["Users"],
       summary: "Login Pengguna",
@@ -42,6 +61,19 @@ export const usersRoute = new Elysia({ prefix: "/api/users" })
     const token = extractToken(headers);
     return await usersService.getCurrentUser(token);
   }, {
+    response: {
+      200: t.Object({
+        data: t.Object({
+          id: t.Number({ default: 1 }),
+          name: t.String({ default: "John Doe" }),
+          email: t.String({ default: "john@example.com" }),
+          createdAt: t.Any({ default: "2024-01-01T00:00:00Z" }),
+        }),
+      }),
+      401: t.Object({
+        error: t.String({ default: "Unauthorized" }),
+      }),
+    },
     detail: {
       tags: ["Users"],
       summary: "Profil Pengguna Aktif",
@@ -52,6 +84,14 @@ export const usersRoute = new Elysia({ prefix: "/api/users" })
     const token = extractToken(headers);
     return await usersService.logoutUser(token);
   }, {
+    response: {
+      200: t.Object({
+        data: t.String({ default: "OK" }),
+      }),
+      401: t.Object({
+        error: t.String({ default: "Unauthorized" }),
+      }),
+    },
     detail: {
       tags: ["Users"],
       summary: "Logout Pengguna",
