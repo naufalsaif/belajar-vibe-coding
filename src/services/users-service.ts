@@ -6,6 +6,16 @@ import { randomUUID } from "node:crypto";
 import { AppError } from "../utils/errors";
 
 export const usersService = {
+  /**
+   * Mendaftarkan pengguna baru ke dalam database.
+   * Melakukan pengecekan duplikasi email terlebih dahulu.
+   * Jika email belum terdaftar, kata sandi akan di-hash menggunakan bcrypt
+   * lalu disimpan secara aman di dalam database.
+   *
+   * @param payload Objek berisi name, email, dan password dari pengguna
+   * @returns Objek sukses `{ data: "OK" }` jika berhasil mendaftar
+   * @throws {AppError} Jika email sudah terdaftar sebelumnya (Status 400)
+   */
   async registerUser(payload: any) {
     const { name, email, password } = payload;
 
@@ -28,6 +38,15 @@ export const usersService = {
     return { data: "OK" };
   },
 
+  /**
+   * Melakukan otentikasi (login) pengguna ke dalam sistem.
+   * Memeriksa keberadaan email, lalu memverifikasi kecocokan password dengan hash dari database.
+   * Jika sukses, sistem akan membuat sesi baru menghasilkan UUID (Bearer token).
+   *
+   * @param payload Objek berisi email dan password dari pencobaan login
+   * @returns Objek balasan dengan identifier sesi otentikasi `{ data: token }`
+   * @throws {AppError} Jika kombinasi email tidak ditemukan atau password salah (Status 401)
+   */
   async loginUser(payload: any) {
     const { email, password } = payload;
 
@@ -55,6 +74,15 @@ export const usersService = {
     return { data: token };
   },
 
+  /**
+   * Menarik data profil pengguna yang saat ini sedang masuk/aktif.
+   * Fungsi ini menggunakan teknik penggabungan relasional (Inner Join)
+   * dari tabel sesi ke tabel pengguna berdasarkan token identitas yang diberikan.
+   *
+   * @param token String otentikasi Bearer token UUID milik pengguna
+   * @returns Objek berisi sekumpulan kelengkapan data pengguna tanpa password
+   * @throws {AppError} Jika token tidak ditemukan / tidak valid (Status 401)
+   */
   async getCurrentUser(token: string) {
     const result = await db
       .select({
@@ -79,6 +107,15 @@ export const usersService = {
     return { data: user };
   },
 
+  /**
+   * Mencabut hak sesi akses aktif / Logout.
+   * Melakukan pengecekan apakah token ada di database.
+   * Jika ada, token otentikator tersebut akan dihapus secara persisten dari sistem.
+   *
+   * @param token String otentikasi Bearer token UUID milik pengguna
+   * @returns Objek sukses `{ data: "OK" }` jika sesi berhasil dihancurkan
+   * @throws {AppError} Jika token tersebut ilegal atau sudah expired (Status 401)
+   */
   async logoutUser(token: string) {
     const session = await db.query.sessions.findFirst({
       where: eq(sessions.token, token),
