@@ -1,4 +1,5 @@
 import { mysqlTable, int, varchar, timestamp } from "drizzle-orm/mysql-core";
+import { relations } from "drizzle-orm";
 
 export const users = mysqlTable("users", {
   id: int("id").primaryKey().autoincrement(),
@@ -8,9 +9,20 @@ export const users = mysqlTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const usersRelations = relations(users, ({ many }) => ({
+  sessions: many(sessions),
+}));
+
 export const sessions = mysqlTable("sessions", {
   id: int("id").primaryKey().autoincrement(),
   token: varchar("token", { length: 255 }).notNull(),
   userId: int("user_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+export const sessionsRelations = relations(sessions, ({ one }) => ({
+  user: one(users, {
+    fields: [sessions.userId],
+    references: [users.id],
+  }),
+}));
