@@ -60,4 +60,29 @@ export const usersService = {
 
     return { data: token };
   },
+
+  async getCurrentUser(token: string) {
+    // 1. Cari session dan join dengan user menggunakan Core API (menghindari LATERAL JOIN yg tidak didukung MariaDB)
+    const result = await db
+      .select({
+        user: {
+          id: users.id,
+          name: users.name,
+          email: users.email,
+          createdAt: users.createdAt,
+        },
+      })
+      .from(sessions)
+      .innerJoin(users, eq(sessions.userId, users.id))
+      .where(eq(sessions.token, token))
+      .limit(1);
+
+    const user = result[0]?.user;
+
+    if (!user) {
+      return { error: "Unauthorized" };
+    }
+
+    return { data: user };
+  },
 };
